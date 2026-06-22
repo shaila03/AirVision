@@ -1,1 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AirVision — AI Air Quality &amp; Climate Action Platform</title>
+<meta name="description" content="AirVision uses AI to monitor real-time air quality, calculate your carbon footprint, and deliver personalized climate action — built for UN SDG 13." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --bg:#ffffff;
+  --bg-soft:#F2FBF5;
+  --surface:rgba(255,255,255,.72);
+  --surface-solid:#ffffff;
+  --ink:#0F172A;
+  --ink-soft:#5B6B68;
+  --line:rgba(15,23,42,.09);
+  --primary:#00C853;
+  --primary-light:#00E676;
+  --secondary:#00BCD4;
+  --accent:#4CAF50;
+  --forest:#06502F;
+  --shadow:0 20px 50px -20px rgba(6,80,47,.25);
+  --radius:22px;
+  --radius-sm:14px;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+
+  --aqi-good:#2E9E5B;
+  --aqi-moderate:#D9A300;
+  --aqi-sensitive:#E07A1F;
+  --aqi-unhealthy:#D43D3D;
+  --aqi-very:#8E3FA8;
+  --aqi-hazard:#7E0023;
+}
+[data-theme="dark"]{
+  --bg:#0A1410;
+  --bg-soft:#0E1A14;
+  --surface:rgba(18,32,26,.66);
+  --surface-solid:#101D17;
+  --ink:#EAF7EF;
+  --ink-soft:#8FAFA1;
+  --line:rgba(255,255,255,.09);
+  --shadow:0 20px 50px -20px rgba(0,0,0,.6);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--ink);
+  overflow-x:hidden;
+  transition:background .4s ease,color .4s ease;
+}
+img,svg{display:block;max-width:100%;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit;}
+ul{list-style:none;}
+::selection{background:var(--primary-light);color:#04210F;}
+:focus-visible{outline:2px solid var(--secondary);outline-offset:3px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
+}
+
+.wrap{max-width:1240px;margin:0 auto;padding:0 28px;}
+.eyebrow{
+  font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--primary);display:inline-flex;align-items:center;gap:8px;font-weight:600;margin-bottom:14px;
+}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px rgba(0,200,83,.18);}
+h1,h2,h3,h4{font-family:var(--font-display);line-height:1.12;letter-spacing:-.01em;}
+.section-title{font-size:clamp(1.7rem,3.2vw,2.5rem);font-weight:700;margin-bottom:14px;}
+.section-sub{color:var(--ink-soft);max-width:560px;font-size:1.02rem;line-height:1.6;}
+.section{padding:110px 0;position:relative;}
+.section-head{margin-bottom:54px;}
+.section-head.center{text-align:center;margin-left:auto;margin-right:auto;}
+.section-head.center .section-sub{margin:0 auto;}
+
+.glass{
+  background:var(--surface);
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:14px 26px;border-radius:100px;font-weight:600;font-size:.95rem;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease,background .25s ease;
+  white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--primary),var(--primary-light));
+  color:#03210F;box-shadow:0 14px 30px -10px rgba(0,200,83,.55);
+}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 20px 36px -10px rgba(0,200,83,.65);}
+.btn-ghost{border:1.5px solid var(--line);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--primary);transform:translateY(-3px);}
+.btn:active{transform:translateY(0) scale(.98);}
+.btn-sm{padding:10px 18px;font-size:.85rem;border-radius:100px;}
+.pill{
+  font-family:var(--font-mono);font-size:.72rem;font-weight:600;padding:5px 12px;border-radius:100px;
+  background:rgba(0,200,83,.12);color:var(--forest);letter-spacing:.04em;
+}
+[data-theme="dark"] .pill{color:var(--primary-light);background:rgba(0,200,83,.15);}
+
+/* reveal on scroll */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1);}
+.reveal.visible{opacity:1;transform:translateY(0);}
+.reveal-stagger > * {transition-delay:calc(var(--i,0) * 90ms);}
+
+/* ============================= NAV ============================= */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:16px 0;transition:padding .3s ease,background .3s ease;
+}
+header.scrolled{padding:10px 0;}
+.nav-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-radius:100px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:1.18rem;}
+.brand-mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(140deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-mark svg{width:20px;height:20px;}
+nav.links{display:flex;gap:6px;align-items:center;}
+nav.links a{
+  font-size:.88rem;font-weight:500;padding:9px 15px;border-radius:100px;color:var(--ink-soft);
+  transition:background .2s,color .2s;
+}
+nav.links a:hover,nav.links a.active{color:var(--ink);background:rgba(0,200,83,.1);}
+.nav-actions{display:flex;align-items:center;gap:10px;}
+.theme-toggle{
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;transition:background .2s,transform .3s;
+}
+.theme-toggle:hover{background:rgba(0,200,83,.1);transform:rotate(20deg);}
+.theme-toggle svg{width:18px;height:18px;}
+.icon-moon{display:none;}
+[data-theme="dark"] .icon-sun{display:none;}
+[data-theme="dark"] .icon-moon{display:block;}
+.burger{display:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);align-items:center;justify-content:center;}
+.burger svg{width:18px;height:18px;}
+
+@media (max-width:920px){
+  nav.links{display:none;}
+  .burger{display:flex;}
+  nav.links.mobile-open{
+    display:flex;position:absolute;top:72px;left:16px;right:16px;flex-direction:column;
+    background:var(--surface-solid);border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow);
+  }
+  nav.links.mobile-open a{width:100%;text-align:left;}
+}
+
+/* ============================= HERO ============================= */
+.hero{
+  min-height:100vh;display:flex;align-items:center;padding-top:120px;padding-bottom:80px;
+  position:relative;overflow:hidden;
+  background:radial-gradient(circle at 80% 10%, rgba(0,230,118,.12), transparent 45%),
+             radial-gradient(circle at 5% 90%, rgba(0,188,212,.1), transparent 45%);
+}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;}
+@media (max-width:980px){.hero-grid{grid-template-columns:1fr;}}
+
+.particle{position:absolute;border-radius:50%;background:radial-gradient(circle,var(--primary-light),transparent 70%);opacity:.35;filter:blur(1px);animation:float-up linear infinite;}
+@keyframes float-up{
+  0%{transform:translateY(0) translateX(0) rotate(0deg);}
+  100%{transform:translateY(-120vh) translateX(40px) rotate(180deg);}
+}
+.hero h1{font-size:clamp(2.3rem,4.6vw,3.7rem);font-weight:700;margin-bottom:22px;}
+.hero h1 .grad{background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.hero p.lead{font-size:1.12rem;color:var(--ink-soft);max-width:520px;line-height:1.7;margin-bottom:32px;}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:46px;}
+.hero-stats{display:flex;gap:36px;flex-wrap:wrap;}
+.hero-stat b{font-family:var(--font-mono);font-size:1.7rem;display:block;color:var(--forest);}
+[data-theme="dark"] .hero-stat b{color:var(--primary-light);}
+.hero-stat span{font-size:.8rem;color:var(--ink-soft);}
+
+/* signature breathing orb */
+.orb-wrap{display:flex;justify-content:center;align-items:center;position:relative;}
+.orb-halo{
+  position:absolute;width:380px;height:380px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,200,83,.22),transparent 70%);
+  animation:breathe 4.2s ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{transform:scale(.92);opacity:.7;}50%{transform:scale(1.08);opacity:1;}}
+.orb{position:relative;width:300px;height:300px;display:flex;align-items:center;justify-content:center;animation:breathe 4.2s ease-in-out infinite;}
+.orb svg{width:100%;height:100%;transform:rotate(-90deg);}
+.orb-ring-bg{stroke:var(--line);}
+.orb-ring-fg{stroke:var(--aqi-good);stroke-linecap:round;transition:stroke-dasharray 1s ease,stroke 1s ease;}
+.orb-center{position:absolute;text-align:center;}
+.orb-center .aqi-num{font-family:var(--font-mono);font-size:3.1rem;font-weight:700;color:var(--ink);line-height:1;}
+.orb-center .aqi-cat{font-size:.82rem;color:var(--ink-soft);margin-top:6px;display:block;}
+.orb-center .aqi-loc{font-size:.72rem;color:var(--ink-soft);margin-top:2px;display:block;opacity:.8;}
+
+/* ============================= MARQUEE / STATS ============================= */
+.stats-strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:46px 0;background:var(--bg-soft);}
+.stats-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;text-align:center;}
+.stats-row div b{font-family:var(--font-mono);font-size:2.1rem;color:var(--forest);}
+[data-theme="dark"] .stats-row div b{color:var(--primary-light);}
+.stats-row div span{display:block;font-size:.82rem;color:var(--ink-soft);margin-top:4px;}
+
+/* ============================= FEATURE CARDS ============================= */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media (max-width:920px){.grid-3{grid-template-columns:1fr 1fr;}.grid-2{grid-template-columns:1fr;}}
+@media (max-width:640px){.grid-3{grid-template-columns:1fr;}}
+
+.feature-card{padding:30px;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;}
+.feature-card:hover{transform:translateY(-8px);}
+.feature-icon{
+  width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+  background:linear-gradient(140deg,rgba(0,200,83,.18),rgba(0,188,212,.14));
+}
+.feature-icon svg{width:24px;height:24px;color:var(--forest);}
+[data-theme="dark"] .feature-icon svg{color:var(--primary-light);}
+.feature-card h3{font-size:1.12rem;margin-bottom:9px;}
+.feature-card p{color:var(--ink-soft);font-size:.92rem;line-height:1.6;}
+.feature-card ul.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.feature-card ul.tag-list li{font-family:var(--font-mono);font-size:.68rem;background:rgba(0,200,83,.1);color:var(--forest);padding:4px 9px;border-radius:8px;}
+[data-theme="dark"] .feature-card ul.tag-list li{color:var(--primary-light);}
+
+/* ============================= HOW IT WORKS ============================= */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+@media (max-width:820px){.steps{grid-template-columns:1fr;}}
+.step{padding:28px;position:relative;}
+.step .step-num{font-family:var(--font-mono);font-size:.78rem;color:var(--primary);font-weight:700;letter-spacing:.06em;}
+.step h4{font-size:1.05rem;margin:10px 0 8px;}
+.step p{color:var(--ink-soft);font-size:.9rem;line-height:1.6;}
+
+/* ============================= AQI DASHBOARD ============================= */
+.aqi-shell{padding:34px;}
+.aqi-search{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;position:relative;}
+.aqi-search input{
+  flex:1;min-width:200px;padding:13px 18px;border-radius:100px;border:1.5px solid var(--line);
+  background:var(--surface-solid);color:var(--ink);font-size:.92rem;
+}
+.aqi-search input:focus{border-color:var(--primary);}
+.aqi-suggest{
+  position:absolute;top:54px;left:0;right:0;background:var(--surface-solid);border:1px solid var(--line);
+  border-radius:14px;box-shadow:var(--shadow);z-index:10;max-height:220px;overflow:auto;display:none;
+}
+.aqi-suggest button{display:block;width:100%;text-align:left;padding:11px 16px;font-size:.86rem;}
+.aqi-suggest button:hover{background:rgba(0,200,83,.08);}
+.aqi-status-line{display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--ink-soft);margin-bottom:24px;min-height:20px;}
+.spinner{width:15px;height:15px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--primary);animation:spin .8s linear infinite;display:none;}
+.spinner.show{display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.aqi-main-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:28px;}
+@media (max-width:920px){.aqi-main-grid{grid-template-columns:1fr;}}
+.aqi-gauge-card{padding:30px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.gauge-wrap{position:relative;width:220px;height:220px;margin:0 auto 14px;}
+.gauge-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+.gauge-ring-bg{stroke:var(--line);}
+.gauge-ring-fg{stroke-linecap:round;transition:stroke-dasharray 1.1s ease,stroke 1.1s ease;}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.gauge-center .num{font-family:var(--font-mono);font-size:2.6rem;font-weight:700;}
+.gauge-center .lbl{font-size:.74rem;color:var(--ink-soft);margin-top:2px;}
+.aqi-cat-badge{font-weight:700;font-size:1.02rem;margin-top:8px;}
+.aqi-cat-desc{font-size:.85rem;color:var(--ink-soft);margin-top:6px;max-width:280px;}
+
+.pollutant-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
+@media (max-width:480px){.pollutant-grid{grid-template-columns:repeat(2,1fr);}}
+.pollutant-card{padding:16px;text-align:center;}
+.pollutant-card .p-val{font-family:var(--font-mono);font-weight:700;font-size:1.3rem;}
+.pollutant-card .p-lbl{font-size:.7rem;color:var(--ink-soft);margin-top:4px;letter-spacing:.03em;}
+.pollutant-card .p-unit{font-size:.62rem;color:var(--ink-soft);opacity:.8;}
+
+.chart-card{padding:26px;}
+.chart-card h4{font-size:.95rem;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.chart-card canvas{max-height:220px;}
+
+.ai-analysis-box{padding:26px;margin-top:24px;}
+.ai-analysis-box h4{font-size:.98rem;display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.ai-analysis-box h4 svg{width:18px;height:18px;color:var(--secondary);}
+.analysis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media (max-width:780px){.analysis-grid{grid-template-columns:1fr;}}
+.analysis-item span.lbl{font-family:var(--font-mono);font-size:.68rem;color:var(--primary);letter-spacing:.05em;text-transform:uppercase;}
+.analysis-item p{font-size:.88rem;line-height:1.6;margin-top:6px;color:var(--ink);}
+.analysis-placeholder{color:var(--ink-soft);font-size:.88rem;}
+.typing-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:3px;animation:bounce 1.2s infinite ease-in-out;}
+.typing-dots span:nth-child(2){animation-delay:.15s;}
+.typing-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-5px);opacity:1;}}
+
+/* ============================= CALCULATOR ============================= */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
+@media (max-width:920px){.calc-grid{grid-template-columns:1fr;}}
+.calc-card{padding:30px;}
+.field-row{margin-bottom:18px;}
+.field-row label{display:block;font-size:.82rem;font-weight:600;margin-bottom:8px;color:var(--ink-soft);}
+.field-row select,.field-row input[type=number]{
+  width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface-solid);color:var(--ink);font-size:.92rem;
+}
+.field-row select:focus,.field-row input:focus{border-color:var(--primary);}
+.field-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.range-row{display:flex;align-items:center;gap:12px;}
+.range-row input[type=range]{flex:1;accent-color:var(--primary);}
+.range-row .range-val{font-family:var(--font-mono);font-size:.85rem;min-width:64px;text-align:right;}
+
+.result-card{padding:30px;}
+.result-total{text-align:center;padding:22px 0 26px;border-bottom:1px solid var(--line);margin-bottom:22px;}
+.result-total .big{font-family:var(--font-mono);font-size:2.6rem;font-weight:700;color:var(--forest);}
+[data-theme="dark"] .result-total .big{color:var(--primary-light);}
+.result-total .unit{font-size:.85rem;color:var(--ink-soft);}
+.result-sub{display:flex;justify-content:center;gap:26px;margin-top:10px;font-size:.84rem;color:var(--ink-soft);}
+.tips-list li{
+  display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:.88rem;line-height:1.5;align-items:flex-start;
+}
+.tips-list li:last-child{border-bottom:none;}
+.tips-list li svg{width:16px;height:16px;color:var(--primary);flex-shrink:0;margin-top:2px;}
+.calc-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+
+/* ============================= CLIMATE SCORE ============================= */
+.score-grid{display:grid;grid-template-columns:.7fr 1.3fr;gap:28px;}
+@media (max-width:920px){.score-grid{grid-template-columns:1fr;}}
+.score-card{padding:34px;text-align:center;}
+.score-ring-wrap{position:relative;width:200px;height:200px;margin:0 auto 16px;}
+.score-ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+.score-ring-bg{stroke:var(--line);}
+.score-ring-fg{stroke:url(#scoreGrad);stroke-linecap:round;transition:stroke-dasharray 1.2s ease;}
+.score-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-num b{font-family:var(--font-mono);font-size:2.4rem;}
+.score-num span{font-size:.74rem;color:var(--ink-soft);}
+.badge-tier{margin-top:10px;font-weight:700;}
+.badge-row{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap;}
+.badge-chip{font-size:.68rem;font-family:var(--font-mono);padding:6px 11px;border-radius:100px;border:1px solid var(--line);color:var(--ink-soft);}
+.badge-chip.unlocked{background:rgba(0,200,83,.12);color:var(--forest);border-color:transparent;}
+[data-theme="dark"] .badge-chip.unlocked{color:var(--primary-light);}
+
+.challenges-list{display:flex;flex-direction:column;gap:14px;}
+.challenge-row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 22px;flex-wrap:wrap;
+}
+.challenge-row .ch-info{display:flex;align-items:center;gap:14px;}
+.ch-icon{width:42px;height:42px;border-radius:12px;background:rgba(0,188,212,.13);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ch-icon svg{width:20px;height:20px;color:var(--secondary);}
+.ch-info h5{font-size:.94rem;margin-bottom:3px;}
+.ch-info p{font-size:.78rem;color:var(--ink-soft);}
+.ch-points{font-family:var(--font-mono);font-size:.78rem;color:var(--primary);font-weight:700;}
+
+.leaderboard{margin-top:30px;}
+.lb-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:.88rem;}
+.lb-row:last-child{border-bottom:none;}
+.lb-row.you{font-weight:700;color:var(--forest);}
+[data-theme="dark"] .lb-row.you{color:var(--primary-light);}
+.lb-rank{font-family:var(--font-mono);width:24px;display:inline-block;color:var(--ink-soft);}
+
+/* ============================= EDUCATION ============================= */
+.edu-card{padding:0;overflow:hidden;cursor:pointer;}
+.edu-head{padding:24px;display:flex;align-items:center;gap:14px;}
+.edu-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,rgba(0,200,83,.18),rgba(0,188,212,.14));flex-shrink:0;}
+.edu-icon svg{width:22px;height:22px;color:var(--forest);}
+[data-theme="dark"] .edu-icon svg{color:var(--primary-light);}
+.edu-head h4{font-size:1rem;flex:1;}
+.edu-head svg.chev{width:16px;height:16px;color:var(--ink-soft);transition:transform .3s;}
+.edu-card.open .chev{transform:rotate(180deg);}
+.edu-body{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+.edu-body-inner{padding:0 24px 22px 84px;color:var(--ink-soft);font-size:.88rem;line-height:1.65;}
+
+/* ============================= NEWS-ish SDG ============================= */
+.sdg-banner{
+  border-radius:var(--radius);padding:46px;display:grid;grid-template-columns:auto 1fr auto;gap:30px;align-items:center;
+  background:linear-gradient(120deg,rgba(0,200,83,.1),rgba(0,188,212,.08));
+}
+@media (max-width:780px){.sdg-banner{grid-template-columns:1fr;text-align:center;}}
+.sdg-badge{width:90px;height:90px;border-radius:18px;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 auto;}
+.sdg-badge svg{width:44px;height:44px;color:#fff;}
+.sdg-banner h3{font-size:1.3rem;margin-bottom:10px;}
+.sdg-banner p{color:var(--ink-soft);font-size:.92rem;line-height:1.6;}
+
+/* ============================= CHAT WIDGET ============================= */
+.chat-fab{
+  position:fixed;bottom:26px;right:26px;width:60px;height:60px;border-radius:50%;z-index:1100;
+  background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;
+  box-shadow:0 16px 30px -10px rgba(0,200,83,.55);transition:transform .3s;
+}
+.chat-fab:hover{transform:scale(1.08);}
+.chat-fab svg{width:26px;height:26px;color:#04210F;}
+.chat-fab .pulse-dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#E53935;border:2px solid var(--bg);}
+.chat-panel{
+  position:fixed;bottom:98px;right:26px;width:380px;max-width:90vw;height:540px;max-height:72vh;z-index:1100;
+  display:none;flex-direction:column;overflow:hidden;border-radius:24px;
+}
+.chat-panel.open{display:flex;}
+.chat-head{padding:18px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);}
+.chat-head .dot{width:9px;height:9px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px rgba(0,200,83,.18);}
+.chat-head h5{font-size:.92rem;flex:1;}
+.chat-head button{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.chat-head button:hover{background:rgba(0,0,0,.06);}
+.chat-body{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;}
+.msg{max-width:84%;padding:11px 14px;border-radius:16px;font-size:.86rem;line-height:1.55;animation:msg-in .3s ease;}
+@keyframes msg-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg.bot{background:rgba(0,188,212,.12);border-radius:16px 16px 16px 4px;align-self:flex-start;}
+.msg.user{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#03210F;border-radius:16px 16px 4px 16px;align-self:flex-end;}
+.msg ul{margin:6px 0 0 16px;}
+.msg li{margin-bottom:4px;}
+.chat-quick{display:flex;gap:7px;padding:0 18px 12px;flex-wrap:wrap;}
+.chat-quick button{font-size:.72rem;padding:7px 11px;border-radius:100px;border:1px solid var(--line);color:var(--ink-soft);}
+.chat-quick button:hover{border-color:var(--primary);color:var(--ink);}
+.chat-input-row{display:flex;gap:8px;padding:14px;border-top:1px solid var(--line);align-items:center;}
+.chat-input-row input{flex:1;padding:11px 14px;border-radius:100px;border:1.5px solid var(--line);background:var(--surface-solid);color:var(--ink);font-size:.86rem;}
+.chat-input-row input:focus{border-color:var(--primary);}
+.chat-input-row button{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-input-row .send-btn{background:var(--primary);color:#03210F;}
+.chat-input-row .mic-btn{border:1px solid var(--line);}
+.chat-input-row .mic-btn.listening{background:#E53935;color:#fff;border-color:transparent;}
+.chat-input-row .mic-btn svg,.chat-input-row .send-btn svg{width:16px;height:16px;}
+
+/* ============================= FOOTER ============================= */
+footer{padding:70px 0 30px;border-top:1px solid var(--line);background:var(--bg-soft);}
+.footer-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:40px;margin-bottom:50px;}
+@media (max-width:820px){.footer-grid{grid-template-columns:1fr 1fr;}}
+@media (max-width:520px){.footer-grid{grid-template-columns:1fr;}}
+.footer-grid h6{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:14px;font-family:var(--font-mono);}
+.footer-grid li{margin-bottom:10px;font-size:.88rem;color:var(--ink-soft);}
+.footer-grid li a:hover{color:var(--primary);}
+.footer-brand p{color:var(--ink-soft);font-size:.88rem;line-height:1.6;margin:14px 0 18px;max-width:280px;}
+.social-row{display:flex;gap:10px;}
+.social-row a{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;transition:border-color .2s,transform .2s;}
+.social-row a:hover{border-color:var(--primary);transform:translateY(-3px);}
+.social-row a svg{width:16px;height:16px;}
+.footer-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;padding-top:26px;border-top:1px solid var(--line);font-size:.82rem;color:var(--ink-soft);}
+.footer-bottom .maker{display:flex;align-items:center;gap:8px;}
+.footer-bottom .maker a{color:var(--primary);font-weight:600;display:inline-flex;align-items:center;gap:5px;}
+.footer-bottom .maker a:hover{text-decoration:underline;}
+
+.toast{
+  position:fixed;bottom:26px;left:26px;z-index:1200;padding:13px 20px;border-radius:14px;font-size:.85rem;
+  display:flex;align-items:center;gap:10px;transform:translateY(20px);opacity:0;transition:all .35s ease;pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast svg{width:16px;height:16px;color:var(--primary);}
+
+.skip-link{position:absolute;left:-999px;}
+.skip-link:focus{left:10px;top:10px;background:#fff;padding:8px;border-radius:8px;z-index:2000;}
+</style>
+</head>
+<body>
+<a href="#aqi" class="skip-link">Skip to live AQI dashboard</a>
+
+<!-- ============================= NAV ============================= -->
+<header id="siteHeader">
+  <div class="wrap nav-inner glass">
+    <a class="brand" href="#home">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#04210F" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><path d="M12 13a3 3 0 1 0 0-6"/></svg>
+      </span>
+      AirVision
+    </a>
+    <nav class="links" id="navLinks">
+      <a href="#aqi">Live AQI</a>
+      <a href="#calculator">Carbon Calculator</a>
+      <a href="#score">Climate Score</a>
+      <a href="#challenges">Challenges</a>
+      <a href="#education">Learn</a>
+      <a href="#about">SDG 13</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.6A9 9 0 1 1 11.4 3a7 7 0 0 0 9.6 9.6Z"/></svg>
+      </button>
+      <a href="#calculator" class="btn btn-primary btn-sm">Get Started</a>
+      <button class="burger" id="burgerBtn" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================= HERO ============================= -->
+<section class="hero" id="home">
+  <div id="particles"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">SDG 13 · Climate Action · Powered by Gemini AI</span>
+      <h1 reveal-target>Track Air Quality.<br><span class="grad">Reduce Emissions.</span><br>Protect Our Future.</h1>
+      <p class="lead">AirVision uses real-time sensor data and Google's Gemini AI to monitor air pollution, estimate your carbon footprint, and turn it into personalized climate action — for free, in your browser.</p>
+      <div class="hero-cta">
+        <a href="#calculator" class="btn btn-primary">Get Started</a>
+        <a href="#aqi" class="btn btn-ghost">Live AQI Dashboard</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><b data-count="99">0</b><span>Free, no backend AQI data</span></div>
+        <div class="hero-stat"><b data-count="6">0</b><span>Pollutants tracked live</span></div>
+        <div class="hero-stat"><b data-count="100">0</b><span>AI Climate Score scale</span></div>
+      </div>
+    </div>
+    <div class="orb-wrap">
+      <div class="orb-halo"></div>
+      <div class="orb">
+        <svg viewBox="0 0 220 220">
+          <circle class="orb-ring-bg" cx="110" cy="110" r="92" fill="none" stroke-width="14"/>
+          <circle id="heroRing" class="orb-ring-fg" cx="110" cy="110" r="92" fill="none" stroke-width="14" stroke-dasharray="0 578"/>
+        </svg>
+        <div class="orb-center">
+          <span class="aqi-num" id="heroAqiNum">--</span>
+          <span class="aqi-cat" id="heroAqiCat">Locating you…</span>
+          <span class="aqi-loc" id="heroAqiLoc">Allow location access</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= STATS STRIP ============================= -->
+<div class="stats-strip">
+  <div class="wrap stats-row">
+    <div><b data-count="7">0</b><span>Billion people breathe unsafe air (WHO est.)</span></div>
+    <div><b data-count="4.7" data-decimals="1">0</b><span>Tonnes CO₂ — world avg. footprint / year</span></div>
+    <div><b data-count="24">0</b><span>Hour AQI forecast in this dashboard</span></div>
+    <div><b data-count="0" data-suffix="">Live</b><span>Open data — no signup required</span></div>
+  </div>
+</div>
+
+<!-- ============================= FEATURES ============================= -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow" style="justify-content:center">What's inside</span>
+      <h2 class="section-title">One dashboard. Five climate superpowers.</h2>
+      <p class="section-sub">Everything AirVision does runs live in this single page — real sensor data, real AI reasoning, zero setup.</p>
+    </div>
+    <div class="grid-3 reveal-stagger">
+      <div class="feature-card glass reveal" style="--i:0">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h11a3 3 0 1 0-3-5"/><path d="M3 16h15a3 3 0 1 1-3 5"/><path d="M3 12h9"/></svg></div>
+        <h3>Live Air Quality</h3>
+        <p>Real PM2.5, PM10, CO, NO₂, SO₂ and Ozone for any city on Earth, plus a 24-hour AQI forecast.</p>
+        <ul class="tag-list"><li>Open‑Meteo</li><li>No API key</li></ul>
+      </div>
+      <div class="feature-card glass reveal" style="--i:1">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-1 2.5-1 4h-6c0-1.5-1-2.5-1-4a4 4 0 0 1 4-4Z"/><path d="M9 16h6M10 20h4"/></svg></div>
+        <h3>Gemini AI Assistant</h3>
+        <p>Ask anything about pollution, climate change or your footprint and get clear, encouraging answers in seconds.</p>
+        <ul class="tag-list"><li>Gemini 2.5</li><li>Voice input</li></ul>
+      </div>
+      <div class="feature-card glass reveal" style="--i:2">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><path d="M12 13a3 3 0 1 0 0-6"/></svg></div>
+        <h3>Carbon Footprint Calculator</h3>
+        <p>Estimate monthly and yearly emissions from travel, electricity, diet and waste — compared to global averages.</p>
+        <ul class="tag-list"><li>AI tips</li><li>PDF report</li></ul>
+      </div>
+      <div class="feature-card glass reveal" style="--i:3">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15a4 4 0 0 0 4-4V5a4 4 0 1 0-8 0v6a4 4 0 0 0 4 4Z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg></div>
+        <h3>Climate Score</h3>
+        <p>A single 0–100 score blending your footprint and eco-activity, with unlockable badges as you improve.</p>
+        <ul class="tag-list"><li>Gamified</li><li>Badges</li></ul>
+      </div>
+      <div class="feature-card glass reveal" style="--i:4">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 12 2 2 4-4M5 5h14v14H5z"/></svg></div>
+        <h3>Community Challenges</h3>
+        <p>Join eco-challenges like Plastic‑Free Week or Walk Instead of Drive, earn points, and climb the leaderboard.</p>
+        <ul class="tag-list"><li>Leaderboard</li><li>Points</li></ul>
+      </div>
+      <div class="feature-card glass reveal" style="--i:5">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+        <h3>Education Hub</h3>
+        <p>Short, clear explainers on air pollution, carbon footprints, climate change and SDG 13 — no jargon.</p>
+        <ul class="tag-list"><li>5 topics</li><li>SDG 13</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= HOW IT WORKS ============================= -->
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow" style="justify-content:center">The flow</span>
+      <h2 class="section-title">From raw air to clear action in 3 steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step glass reveal" style="--i:0"><span class="step-num">STEP 01</span><h4>Share your location or search a city</h4><p>One tap geolocation, or type any city name worldwide using live search.</p></div>
+      <div class="step glass reveal" style="--i:1"><span class="step-num">STEP 02</span><h4>AirVision fetches real-time air data</h4><p>Free open sensor data returns AQI plus PM2.5, PM10, CO, NO₂, SO₂ and Ozone instantly.</p></div>
+      <div class="step glass reveal" style="--i:2"><span class="step-num">STEP 03</span><h4>Gemini AI explains the risk &amp; gives tips</h4><p>Plain-language health risk, outdoor activity advice, and one practical action for today.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= LIVE AQI DASHBOARD ============================= -->
+<section class="section" id="aqi">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Live dashboard</span>
+      <h2 class="section-title">Local Air Quality Monitor</h2>
+      <p class="section-sub">Real-time data from open atmospheric sensors and forecast models — search any city or use your current location.</p>
+    </div>
+
+    <div class="aqi-shell glass reveal">
+      <div class="aqi-search">
+        <input type="text" id="citySearch" placeholder="Search a city — e.g. Mumbai, London, Tokyo…" autocomplete="off" />
+        <div class="aqi-suggest" id="citySuggest"></div>
+        <button class="btn btn-primary btn-sm" id="useLocationBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          Use my location
+        </button>
+      </div>
+      <div class="aqi-status-line"><span class="spinner" id="aqiSpinner"></span><span id="aqiStatusText">Waiting for a location…</span></div>
+
+      <div class="aqi-main-grid">
+        <div class="aqi-gauge-card glass">
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 220 220">
+              <circle class="gauge-ring-bg" cx="110" cy="110" r="92" fill="none" stroke-width="16"/>
+              <circle id="aqiRing" class="gauge-ring-fg" cx="110" cy="110" r="92" fill="none" stroke-width="16" stroke-dasharray="0 578" stroke="#2E9E5B"/>
+            </svg>
+            <div class="gauge-center">
+              <span class="num" id="aqiMainNum">--</span>
+              <span class="lbl">US AQI</span>
+            </div>
+          </div>
+          <div class="aqi-cat-badge" id="aqiCatBadge">No data yet</div>
+          <p class="aqi-cat-desc" id="aqiCatDesc">Search a city or allow location access to see live conditions.</p>
+          <div class="pollutant-grid">
+            <div class="pollutant-card glass"><div class="p-val" id="p_pm25">--</div><div class="p-lbl">PM2.5</div><div class="p-unit">µg/m³</div></div>
+            <div class="pollutant-card glass"><div class="p-val" id="p_pm10">--</div><div class="p-lbl">PM10</div><div class="p-unit">µg/m³</div></div>
+            <div class="pollutant-card glass"><div class="p-val" id="p_co">--</div><div class="p-lbl">CO</div><div class="p-unit">µg/m³</div></div>
+            <div class="pollutant-card glass"><div class="p-val" id="p_no2">--</div><div class="p-lbl">NO₂</div><div class="p-unit">µg/m³</div></div>
+            <div class="pollutant-card glass"><div class="p-val" id="p_so2">--</div><div class="p-lbl">SO₂</div><div class="p-unit">µg/m³</div></div>
+            <div class="pollutant-card glass"><div class="p-val" id="p_o3">--</div><div class="p-lbl">Ozone</div><div class="p-unit">µg/m³</div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="chart-card glass">
+            <h4>24-Hour AQI Forecast <span class="pill" id="forecastCity">—</span></h4>
+            <canvas id="forecastChart" height="90"></canvas>
+          </div>
+          <div class="ai-analysis-box glass">
+            <h4>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-1 2.5-1 4h-6c0-1.5-1-2.5-1-4a4 4 0 0 1 4-4Z"/><path d="M9 16h6M10 20h4"/></svg>
+              Gemini AI Health Analysis
+              <button class="btn btn-ghost btn-sm" id="getAnalysisBtn" style="margin-left:auto">Analyze with AI</button>
+            </h4>
+            <div id="analysisContent" class="analysis-placeholder">Load air quality data above, then click "Analyze with AI" for a personalized health and activity briefing.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= CARBON CALCULATOR ============================= -->
+<section class="section" id="calculator">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Estimate &amp; reduce</span>
+      <h2 class="section-title">Carbon Footprint Calculator</h2>
+      <p class="section-sub">Answer a few questions about your lifestyle to estimate your monthly and yearly CO₂e emissions, using standard global emission factors.</p>
+    </div>
+
+    <div class="calc-grid">
+      <form class="calc-card glass reveal" id="calcForm">
+        <div class="field-row">
+          <label>Primary transport &amp; weekly distance (km)</label>
+          <div class="field-2col">
+            <select id="transportMode">
+              <option value="0">Walk / Bicycle</option>
+              <option value="0.041">Train / Metro</option>
+              <option value="0.089">Bus</option>
+              <option value="0.18" selected>Car (petrol/diesel)</option>
+              <option value="0.06">Electric Car</option>
+            </select>
+            <input type="number" id="transportKm" value="60" min="0" placeholder="km / week" />
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Flights per year</label>
+          <div class="field-2col">
+            <input type="number" id="flightsShort" value="1" min="0" placeholder="Short-haul (<3h)" />
+            <input type="number" id="flightsLong" value="0" min="0" placeholder="Long-haul (>6h)" />
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Monthly electricity usage</label>
+          <div class="range-row">
+            <input type="range" id="electricity" min="0" max="1000" value="180" />
+            <span class="range-val"><span id="electricityVal">180</span> kWh</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <label>Diet type</label>
+          <select id="diet">
+            <option value="3.3">Non-vegetarian</option>
+            <option value="2.5" selected>Mixed</option>
+            <option value="1.7">Vegetarian</option>
+            <option value="1.5">Vegan</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <label>Weekly household waste</label>
+          <div class="range-row">
+            <input type="range" id="waste" min="0" max="40" value="8" />
+            <span class="range-val"><span id="wasteVal">8</span> kg</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Calculate My Footprint</button>
+      </form>
+
+      <div class="result-card glass reveal">
+        <div class="result-total">
+          <div class="big"><span id="totalYearTons">0.0</span> t</div>
+          <div class="unit">Estimated CO₂e per year</div>
+          <div class="result-sub">
+            <span id="totalMonthKg">0 kg / month</span>
+            <span id="vsWorld">— vs world avg.</span>
+          </div>
+        </div>
+        <div class="grid-2" style="gap:14px;margin-bottom:18px">
+          <div style="text-align:center"><canvas id="breakdownChart" height="140"></canvas></div>
+          <div style="text-align:center"><canvas id="compareChart" height="140"></canvas></div>
+        </div>
+        <h4 style="font-size:.9rem;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-1 2.5-1 4h-6c0-1.5-1-2.5-1-4a4 4 0 0 1 4-4Z"/></svg>
+          AI Climate Action Plan
+        </h4>
+        <ul class="tips-list" id="tipsList"><li style="color:var(--ink-soft)">Calculate your footprint to get personalized AI recommendations.</li></ul>
+        <div class="calc-actions">
+          <button class="btn btn-ghost btn-sm" id="aiTipsBtn" type="button">Get AI Recommendations</button>
+          <button class="btn btn-ghost btn-sm" id="downloadReportBtn" type="button">Download PDF Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= CLIMATE SCORE + CHALLENGES ============================= -->
+<section class="section" id="score">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Gamified impact</span>
+      <h2 class="section-title">Your Climate Score</h2>
+      <p class="section-sub">A blended score from your footprint and challenge participation. Calculate your footprint and join challenges to watch it move.</p>
+    </div>
+    <div class="score-grid">
+      <div class="score-card glass reveal">
+        <div class="score-ring-wrap">
+          <svg viewBox="0 0 200 200">
+            <defs><linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00C853"/><stop offset="100%" stop-color="#00BCD4"/></linearGradient></defs>
+            <circle class="score-ring-bg" cx="100" cy="100" r="84" fill="none" stroke-width="14"/>
+            <circle id="scoreRing" class="score-ring-fg" cx="100" cy="100" r="84" fill="none" stroke-width="14" stroke-dasharray="0 528"/>
+          </svg>
+          <div class="score-num"><b id="scoreNum">62</b><span>/ 100</span></div>
+        </div>
+        <div class="badge-tier" id="badgeTier">Sapling 🌱</div>
+        <div class="badge-row">
+          <span class="badge-chip unlocked" id="badgeSeed">Seedling</span>
+          <span class="badge-chip" id="badgeSapling">Sapling</span>
+          <span class="badge-chip" id="badgeTree">Tree</span>
+          <span class="badge-chip" id="badgeForest">Forest Guardian</span>
+        </div>
+      </div>
+      <div id="challenges">
+        <div class="challenges-list reveal">
+          <div class="challenge-row glass" data-points="10">
+            <div class="ch-info"><div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 4 4 15h7l-1 5 9-11h-7l1-5Z"/></svg></div><div><h5>Walk Instead of Drive</h5><p>Skip the car for short trips this week.</p></div></div>
+            <div style="display:flex;align-items:center;gap:14px"><span class="ch-points">+10 pts</span><button class="btn btn-primary btn-sm join-btn">Join</button></div>
+          </div>
+          <div class="challenge-row glass" data-points="8">
+            <div class="ch-info"><div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div><div><h5>Save Electricity</h5><p>Cut your household usage by 10% this month.</p></div></div>
+            <div style="display:flex;align-items:center;gap:14px"><span class="ch-points">+8 pts</span><button class="btn btn-primary btn-sm join-btn">Join</button></div>
+          </div>
+          <div class="challenge-row glass" data-points="15">
+            <div class="ch-info"><div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/></svg></div><div><h5>Plant a Tree</h5><p>Plant or sponsor one tree in your community.</p></div></div>
+            <div style="display:flex;align-items:center;gap:14px"><span class="ch-points">+15 pts</span><button class="btn btn-primary btn-sm join-btn">Join</button></div>
+          </div>
+          <div class="challenge-row glass" data-points="12">
+            <div class="ch-info"><div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6v14M16 6v14M5 6l1-3h12l1 3"/></svg></div><div><h5>Plastic-Free Week</h5><p>Avoid single-use plastic for 7 days straight.</p></div></div>
+            <div style="display:flex;align-items:center;gap:14px"><span class="ch-points">+12 pts</span><button class="btn btn-primary btn-sm join-btn">Join</button></div>
+          </div>
+        </div>
+        <div class="leaderboard glass" style="padding:22px" >
+          <h4 style="font-size:.9rem;margin-bottom:12px">Community Leaderboard</h4>
+          <div id="leaderboardList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= EDUCATION HUB ============================= -->
+<section class="section" id="education">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow" style="justify-content:center">Education hub</span>
+      <h2 class="section-title">Understand the science in plain language</h2>
+    </div>
+    <div class="grid-2 reveal-stagger" id="eduGrid"></div>
+  </div>
+</section>
+
+<!-- ============================= SDG 13 ABOUT ============================= -->
+<section class="section" id="about" style="padding-top:0">
+  <div class="wrap">
+    <div class="sdg-banner reveal">
+      <div class="sdg-badge"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><path d="M12 13a3 3 0 1 0 0-6"/></svg></div>
+      <div>
+        <span class="pill" style="margin-bottom:10px;display:inline-block">UN Sustainable Development Goal 13</span>
+        <h3>Climate Action</h3>
+        <p>SDG 13 calls for urgent action to combat climate change and its impacts — strengthening resilience, improving education and awareness, and integrating climate measures into everyday decisions. AirVision was built as a practical, hands-on response: it turns invisible air pollution and carbon emissions into numbers people can see, understand, and act on.</p>
+      </div>
+      <a href="https://sdgs.un.org/goals/goal13" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Learn about SDG 13</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= FOOTER ============================= -->
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#home">
+          <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#04210F" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><path d="M12 13a3 3 0 1 0 0-6"/></svg></span>
+          AirVision
+        </a>
+        <p>Breathe Smarter. Live Greener. An AI-powered air quality and climate action platform built for UN SDG 13.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/shaila-mandkulkar-228659411/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M6.94 8.5a1.44 1.44 0 1 0 0-2.88 1.44 1.44 0 0 0 0 2.88ZM5.5 10.5h3v9h-3v-9ZM11 10.5h2.9v1.27h.04c.4-.76 1.4-1.56 2.9-1.56 3.1 0 3.66 2 3.66 4.6V19.5h-3v-4.4c0-1.05-.02-2.4-1.47-2.4-1.47 0-1.7 1.15-1.7 2.33v4.47h-3v-9Z" fill="currentColor" stroke="none"/></svg></a>
+          <a href="#" id="githubLink" aria-label="GitHub repository"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2-.2 4-1 4-4.5 0-1-.4-2-1-2.7.1-.3.5-1.4-.1-3 0 0-1.3-.4-3.9 1.5a13.4 13.4 0 0 0-7 0C4 4.9 2.7 5.3 2.7 5.3c-.6 1.6-.2 2.7-.1 3-.6.7-1 1.7-1 2.7 0 3.5 2 4.3 4 4.5-.4.4-.4.8-.5 1.4V19"/></svg></a>
+        </div>
+      </div>
+      <div><h6>Platform</h6><ul><li><a href="#aqi">Live AQI Dashboard</a></li><li><a href="#calculator">Carbon Calculator</a></li><li><a href="#score">Climate Score</a></li><li><a href="#challenges">Challenges</a></li></ul></div>
+      <div><h6>Learn</h6><ul><li><a href="#education">Education Hub</a></li><li><a href="#about">SDG 13</a></li><li><a href="https://www.iqair.com/world-air-quality" target="_blank" rel="noopener">World AQI Ranking ↗</a></li></ul></div>
+      <div><h6>Data &amp; AI</h6><ul><li><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo Air Quality ↗</a></li><li><a href="https://ai.google.dev/" target="_blank" rel="noopener">Google Gemini API ↗</a></li><li><a href="https://sdgs.un.org/goals/goal13" target="_blank" rel="noopener">UN SDG 13 ↗</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="yearNow"></span> AirVision — Built for the SDG 13 AI Capstone Project.</span>
+      <span class="maker">Made with 🌱 by <a href="https://www.linkedin.com/in/shaila-mandkulkar-228659411/" target="_blank" rel="noopener">Shaila Mandkulkar ↗</a></span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================= CHAT WIDGET ============================= -->
+<button class="chat-fab" id="chatFab" aria-label="Open AI assistant">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z"/></svg>
+  <span class="pulse-dot"></span>
+</button>
+<div class="chat-panel glass" id="chatPanel">
+  <div class="chat-head">
+    <span class="dot"></span>
+    <h5>AirVision AI Assistant</h5>
+    <button id="chatClose" aria-label="Close chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-quick" id="chatQuick">
+    <button data-q="Is today's air safe to go outside?">Is today's air safe?</button>
+    <button data-q="How can I reduce my carbon footprint?">Reduce my footprint</button>
+    <button data-q="Why is air pollution increasing globally?">Why is pollution rising?</button>
+  </div>
+  <div class="chat-input-row">
+    <button class="mic-btn" id="micBtn" aria-label="Voice input" title="Speak your question">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+    </button>
+    <input type="text" id="chatInput" placeholder="Ask AirVision AI…" />
+    <button class="send-btn" id="chatSend" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m22 2-11 11M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span id="toastMsg"></span></div>
+
+<script>
+/* =====================================================================
+   AIRVISION — single-file app
+   Sections: CONFIG · STATE · UTILS · THEME/NAV · REVEAL · HERO ORB
+   AQI MODULE · GEMINI MODULE · CHAT · CALCULATOR · SCORE/CHALLENGES
+   EDUCATION · INIT
+   ===================================================================== */
+
+/* ---------- CONFIG ---------- */
+const CONFIG = {
+  GEMINI_API_KEY: "AQ.Ab8RN6KaaRI4-pUJWkeIfQKyEvk4xlY0D3KIeKxIgKRYAiOJ_A",
+  GEMINI_MODEL: "gemini-2.5-flash",
+  get GEMINI_URL(){
+    return `https://generativelanguage.googleapis.com/v1beta/models/${this.GEMINI_MODEL}:generateContent?key=${this.GEMINI_API_KEY}`;
+  },
+  AQI_URL: "https://air-quality-api.open-meteo.com/v1/air-quality",
+  GEOCODE_URL: "https://geocoding-api.open-meteo.com/v1/search",
+  REVERSE_GEOCODE_URL: "https://api.bigdatacloud.net/data/reverse-geocode-client",
+};
+
+/* ---------- STATE (in-memory only — no localStorage/sessionStorage) ----------
+   Note: this resets on page refresh. That's intentional here because the
+   preview sandbox this file is built in blocks browser storage APIs.
+   Once you deploy this on GitHub Pages you can swap these in-memory
+   objects for localStorage if you want data to persist across visits. */
+const STATE = {
+  lastAQI: null,
+  lastCity: null,
+  chatHistory: [],     // [{role:'user'|'model', text}]
+  footprint: null,     // last calculated footprint breakdown
+  points: 0,           // challenge points earned this session
+  joinedChallenges: new Set(),
+  leaderboard: [
+    { name: "Aarav P.", points: 64 },
+    { name: "Mei L.", points: 51 },
+    { name: "Noah B.", points: 38 },
+    { name: "Fatima R.", points: 22 },
+  ],
+};
+
+/* ---------- UTILS ---------- */
+const $ = (sel,ctx=document)=>ctx.querySelector(sel);
+const $$ = (sel,ctx=document)=>[...ctx.querySelectorAll(sel)];
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function showToast(msg){
+  const t=$("#toast"); $("#toastMsg").textContent=msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove("show"),3200);
+}
+function animateValue(el,to,duration=1400,decimals=0,suffix=""){
+  const start=0; const startTime=performance.now();
+  function tick(now){
+    const p=Math.min(1,(now-startTime)/duration);
+    const eased=1-Math.pow(1-p,3);
+    const val=start+(to-start)*eased;
+    el.textContent=decimals?val.toFixed(decimals):Math.round(val)+suffix;
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+/* simple, safe-ish markdown-lite renderer for AI text (escapes first) */
+function renderRichText(raw){
+  let s=escapeHTML(raw);
+  s=s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+  // turn "- item" lines into a list
+  const lines=s.split(/\n/);
+  let html=""; let inList=false;
+  for(const line of lines){
+    const m=line.match(/^\s*[-•]\s+(.*)/);
+    if(m){
+      if(!inList){html+="<ul>";inList=true;}
+      html+=`<li>${m[1]}</li>`;
+    }else{
+      if(inList){html+="</ul>";inList=false;}
+      if(line.trim()) html+=`<p>${line}</p>`;
+    }
+  }
+  if(inList) html+="</ul>";
+  return html || `<p>${s}</p>`;
+}
+
+/* ---------- THEME ---------- */
+const themeToggle=$("#themeToggle");
+themeToggle.addEventListener("click",()=>{
+  const html=document.documentElement;
+  const next=html.getAttribute("data-theme")==="dark"?"light":"dark";
+  html.setAttribute("data-theme",next);
+});
+
+/* ---------- NAV ---------- */
+const header=$("#siteHeader");
+window.addEventListener("scroll",()=>{
+  header.classList.toggle("scrolled",window.scrollY>30);
+  const links=$$("#navLinks a");
+  let current=null;
+  $$("section[id]").forEach(sec=>{
+    if(window.scrollY+140>=sec.offsetTop) current=sec.id;
+  });
+  links.forEach(a=>a.classList.toggle("active",a.getAttribute("href")==="#"+current));
+},{passive:true});
+
+$("#burgerBtn").addEventListener("click",()=>$("#navLinks").classList.toggle("mobile-open"));
+$$("#navLinks a").forEach(a=>a.addEventListener("click",()=>$("#navLinks").classList.remove("mobile-open")));
+
+/* ---------- PARTICLES (ambient hero animation) ---------- */
+(function particles(){
+  const wrap=$("#particles");
+  for(let i=0;i<22;i++){
+    const p=document.createElement("div");
+    p.className="particle";
+    const size=6+Math.random()*16;
+    p.style.width=size+"px"; p.style.height=size+"px";
+    p.style.left=Math.random()*100+"%";
+    p.style.bottom=-20-Math.random()*40+"px";
+    p.style.animationDuration=(14+Math.random()*16)+"s";
+    p.style.animationDelay=(Math.random()*16)+"s";
+    wrap.appendChild(p);
+  }
+})();
+
+/* ---------- REVEAL ON SCROLL ---------- */
+const revealObserver=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("visible"); revealObserver.unobserve(e.target);} });
+},{threshold:.12});
+function initReveal(){ $$(".reveal:not([data-init])").forEach(el=>{ el.setAttribute("data-init","1"); revealObserver.observe(el); }); }
+
+/* ---------- HERO STAT COUNTERS ---------- */
+const countObserver=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const el=e.target; const to=parseFloat(el.dataset.count);
+      const decimals=parseInt(el.dataset.decimals||"0");
+      const suffix=el.dataset.suffix!==undefined?el.dataset.suffix:"";
+      if(!isNaN(to)) animateValue(el,to,1500,decimals,suffix);
+      countObserver.unobserve(el);
+    }
+  });
+},{threshold:.4});
+$$("[data-count]").forEach(el=>countObserver.observe(el));
+
+/* =====================================================================
+   AQI MODULE
+   ===================================================================== */
+const AQI_CATEGORIES=[
+  {max:50, label:"Good", color:"var(--aqi-good)", hex:"#2E9E5B", desc:"Air quality is satisfactory and poses little or no risk."},
+  {max:100, label:"Moderate", color:"var(--aqi-moderate)", hex:"#D9A300", desc:"Acceptable, but sensitive groups may notice mild effects."},
+  {max:150, label:"Unhealthy for Sensitive Groups", color:"var(--aqi-sensitive)", hex:"#E07A1F", desc:"Children, elderly and people with respiratory issues should reduce prolonged outdoor exertion."},
+  {max:200, label:"Unhealthy", color:"var(--aqi-unhealthy)", hex:"#D43D3D", desc:"Everyone may begin to experience health effects; sensitive groups more seriously."},
+  {max:300, label:"Very Unhealthy", color:"var(--aqi-very)", hex:"#8E3FA8", desc:"Health alert — everyone may experience more serious effects."},
+  {max:99999, label:"Hazardous", color:"var(--aqi-hazard)", hex:"#7E0023", desc:"Emergency conditions. Avoid all outdoor exertion."},
+];
+function getAQICategory(aqi){ return AQI_CATEGORIES.find(c=>aqi<=c.max) || AQI_CATEGORIES[AQI_CATEGORIES.length-1]; }
+
+function setStatus(text,loading=false){
+  $("#aqiStatusText").textContent=text;
+  $("#aqiSpinner").classList.toggle("show",loading);
+}
+
+function setRing(ringEl,value,max,radius,colorHex){
+  const circumference=2*Math.PI*radius;
+  const pct=Math.max(0,Math.min(1,value/max));
+  ringEl.setAttribute("stroke-dasharray",`${pct*circumference} ${circumference}`);
+  if(colorHex) ringEl.setAttribute("stroke",colorHex);
+}
+
+async function useMyLocation(){
+  if(!navigator.geolocation){ showToast("Geolocation isn't supported in this browser."); return; }
+  setStatus("Requesting location permission…",true);
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const {latitude,longitude}=pos.coords;
+    let place="Your location";
+    try{
+      const r=await fetch(`${CONFIG.REVERSE_GEOCODE_URL}?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+      if(r.ok){ const d=await r.json(); place=[d.city||d.locality,d.principalSubdivision,d.countryName].filter(Boolean).join(", ")||place; }
+    }catch(e){ /* non-fatal, fall back to coordinates */ }
+    loadAQI(latitude,longitude,place);
+  },err=>{
+    setStatus("Location permission denied. Try searching a city instead.",false);
+    $("#heroAqiCat").textContent="Location unavailable";
+    $("#heroAqiLoc").textContent="Try searching a city below";
+  },{timeout:10000});
+}
+$("#useLocationBtn").addEventListener("click",useMyLocation);
+
+let geocodeTimer=null;
+$("#citySearch").addEventListener("input",e=>{
+  clearTimeout(geocodeTimer);
+  const q=e.target.value.trim();
+  const box=$("#citySuggest");
+  if(q.length<2){ box.style.display="none"; return; }
+  geocodeTimer=setTimeout(async ()=>{
+    try{
+      const r=await fetch(`${CONFIG.GEOCODE_URL}?name=${encodeURIComponent(q)}&count=6&language=en&format=json`);
+      const d=await r.json();
+      const results=d.results||[];
+      if(!results.length){ box.style.display="none"; return; }
+      box.innerHTML=results.map(res=>{
+        const label=[res.name,res.admin1,res.country].filter(Boolean).join(", ");
+        return `<button type="button" data-lat="${res.latitude}" data-lon="${res.longitude}" data-label="${escapeHTML(label)}">${escapeHTML(label)}</button>`;
+      }).join("");
+      box.style.display="block";
+    }catch(err){ box.style.display="none"; }
+  },350);
+});
+$("#citySuggest").addEventListener("click",e=>{
+  const btn=e.target.closest("button"); if(!btn) return;
+  $("#citySearch").value=btn.dataset.label;
+  $("#citySuggest").style.display="none";
+  loadAQI(parseFloat(btn.dataset.lat),parseFloat(btn.dataset.lon),btn.dataset.label);
+});
+document.addEventListener("click",e=>{ if(!e.target.closest(".aqi-search")) $("#citySuggest").style.display="none"; });
+
+async function loadAQI(lat,lon,placeName){
+  setStatus(`Fetching live air data for ${placeName}…`,true);
+  try{
+    const params=new URLSearchParams({
+      latitude:lat, longitude:lon, timezone:"auto",
+      current:"pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi,european_aqi",
+      hourly:"pm2_5,us_aqi",
+    });
+    const res=await fetch(`${CONFIG.AQI_URL}?${params.toString()}`);
+    if(!res.ok) throw new Error("Air quality service returned an error.");
+    const data=await res.json();
+    renderAQI(data,placeName);
+    setStatus(`Showing live data for ${placeName} · updated just now`,false);
+  }catch(err){
+    setStatus("Couldn't load air data right now — please try again in a moment.",false);
+    showToast("Air quality fetch failed. Check your connection and retry.");
+  }
+}
+
+function renderAQI(data,placeName){
+  const cur=data.current||{};
+  const aqi=Math.round(cur.us_aqi ?? 0);
+  const cat=getAQICategory(aqi);
+
+  STATE.lastAQI={ city:placeName, aqi, category:cat.label,
+    pm25:cur.pm2_5, pm10:cur.pm10, co:cur.carbon_monoxide, no2:cur.nitrogen_dioxide, so2:cur.sulphur_dioxide, o3:cur.ozone };
+  STATE.lastCity=placeName;
+
+  // main gauge
+  $("#aqiMainNum").textContent=aqi||"--";
+  setRing($("#aqiRing"),aqi,300,92,cat.hex);
+  const badge=$("#aqiCatBadge"); badge.textContent=cat.label; badge.style.color=cat.hex;
+  $("#aqiCatDesc").textContent=cat.desc;
+
+  // hero orb mirrors the same reading
+  $("#heroAqiNum").textContent=aqi||"--";
+  $("#heroAqiCat").textContent=cat.label;
+  $("#heroAqiLoc").textContent=placeName;
+  setRing($("#heroRing"),aqi,300,92,cat.hex);
+
+  // pollutant cards
+  const set=(id,val,d=1)=> $(id).textContent = (val===undefined||val===null) ? "--" : Number(val).toFixed(d);
+  set("#p_pm25",cur.pm2_5); set("#p_pm10",cur.pm10); set("#p_co",cur.carbon_monoxide,0);
+  set("#p_no2",cur.nitrogen_dioxide); set("#p_so2",cur.sulphur_dioxide); set("#p_o3",cur.ozone);
+
+  $("#forecastCity").textContent=placeName;
+  renderForecastChart(data.hourly);
+
+  // reset analysis box for the new reading
+  $("#analysisContent").innerHTML=`<span class="analysis-placeholder">Click "Analyze with AI" for a personalized briefing on this reading.</span>`;
+}
+
+let forecastChartInstance=null;
+function renderForecastChart(hourly){
+  if(!hourly || !hourly.time) return;
+  const now=new Date();
+  const idxNow=hourly.time.findIndex(t=>new Date(t)>=now);
+  const start=Math.max(0,idxNow);
+  const labels=hourly.time.slice(start,start+24).map(t=>new Date(t).toLocaleTimeString([], {hour:"2-digit"}));
+  const values=hourly.us_aqi.slice(start,start+24);
+  const ctx=$("#forecastChart").getContext("2d");
+  if(forecastChartInstance) forecastChartInstance.destroy();
+  forecastChartInstance=new Chart(ctx,{
+    type:"line",
+    data:{labels,datasets:[{label:"US AQI",data:values,borderColor:"#00BCD4",backgroundColor:"rgba(0,188,212,.15)",fill:true,tension:.35,pointRadius:0,borderWidth:2}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:"rgba(120,120,120,.1)"}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:false}
+  });
+}
+
+$("#getAnalysisBtn").addEventListener("click",runAIAnalysis);
+async function runAIAnalysis(){
+  if(!STATE.lastAQI){ showToast("Load a city's air quality data first."); return; }
+  const box=$("#analysisContent");
+  box.innerHTML=`<div class="typing-dots"><span></span><span></span><span></span></div>`;
+  const a=STATE.lastAQI;
+  const prompt=`You are an air-quality health analyst. Given this live reading for ${a.city}: US AQI ${a.aqi} (${a.category}), PM2.5 ${a.pm25} µg/m3, PM10 ${a.pm10} µg/m3, CO ${a.co} µg/m3, NO2 ${a.no2} µg/m3, SO2 ${a.so2} µg/m3, Ozone ${a.o3} µg/m3.
+Respond ONLY with valid minified JSON, no markdown fences, in this exact shape:
+{"summary":"one or two sentence plain-language pollution summary","healthRisk":"one or two sentence health risk analysis, mention sensitive groups if relevant","advice":"one sentence of outdoor activity advice for today","tip":"one short, practical, specific action the person can take today to reduce their own exposure or contribution"}`;
+  try{
+    const text=await callGemini(prompt);
+    const parsed=parseJSONFromModel(text);
+    box.innerHTML=`<div class="analysis-grid">
+      <div class="analysis-item"><span class="lbl">Summary</span><p>${escapeHTML(parsed.summary||"—")}</p></div>
+      <div class="analysis-item"><span class="lbl">Health risk</span><p>${escapeHTML(parsed.healthRisk||"—")}</p></div>
+      <div class="analysis-item"><span class="lbl">Today's advice</span><p>${escapeHTML(parsed.advice||"—")}</p></div>
+    </div>
+    <div class="analysis-item" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"><span class="lbl">Quick tip</span><p>${escapeHTML(parsed.tip||"—")}</p></div>`;
+  }catch(err){
+    box.innerHTML=`<span class="analysis-placeholder">AI analysis is unavailable right now (${escapeHTML(err.message)}). Double-check the Gemini API key in the script, then try again.</span>`;
+  }
+}
+
+/* =====================================================================
+   GEMINI MODULE
+   ===================================================================== */
+async function callGemini(userPrompt,systemInstruction){
+  const body={ contents:[{ role:"user", parts:[{text:userPrompt}] }] };
+  if(systemInstruction) body.systemInstruction={ parts:[{text:systemInstruction}] };
+  const res=await fetch(CONFIG.GEMINI_URL,{
+    method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+  });
+  if(!res.ok){
+    let detail="";
+    try{ const j=await res.json(); detail=j?.error?.message||""; }catch(e){}
+    throw new Error(detail || `Gemini request failed (HTTP ${res.status})`);
+  }
+  const data=await res.json();
+  const text=data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+  if(!text) throw new Error("Empty response from Gemini.");
+  return text;
+}
+function parseJSONFromModel(text){
+  const cleaned=text.replace(/```json/gi,"").replace(/```/g,"").trim();
+  try{ return JSON.parse(cleaned); }
+  catch(e){
+    const match=cleaned.match(/\{[\s\S]*\}/);
+    if(match){ try{ return JSON.parse(match[0]); }catch(e2){} }
+    throw new Error("Couldn't parse the AI's response.");
+  }
+}
+
+/* =====================================================================
+   CHAT WIDGET
+   ===================================================================== */
+const chatFab=$("#chatFab"), chatPanel=$("#chatPanel"), chatBody=$("#chatBody");
+chatFab.addEventListener("click",()=>{
+  chatPanel.classList.add("open");
+  $(".pulse-dot")?.remove();
+  if(!STATE.chatHistory.length) addChatMessage("bot","Hi! I'm the AirVision AI Assistant 🌱 — ask me about air quality, your carbon footprint, or how to take climate action today.");
+});
+$("#chatClose").addEventListener("click",()=>chatPanel.classList.remove("open"));
+$("#chatQuick").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  sendChatMessage(b.dataset.q);
+});
+function addChatMessage(role,text){
+  const div=document.createElement("div");
+  div.className="msg "+(role==="user"?"user":"bot");
+  div.innerHTML = role==="user" ? `<p>${escapeHTML(text)}</p>` : renderRichText(text);
+  chatBody.appendChild(div);
+  chatBody.scrollTop=chatBody.scrollHeight;
+}
+async function sendChatMessage(text){
+  if(!text || !text.trim()) return;
+  addChatMessage("user",text);
+  STATE.chatHistory.push({role:"user",text});
+  $("#chatQuick").style.display="none";
+  const typingDiv=document.createElement("div");
+  typingDiv.className="msg bot"; typingDiv.innerHTML=`<div class="typing-dots"><span></span><span></span><span></span></div>`;
+  chatBody.appendChild(typingDiv); chatBody.scrollTop=chatBody.scrollHeight;
+  const sys="You are AirVision AI, a friendly environmental expert helping users understand air quality, pollution, climate change, and carbon footprint reduction. Keep answers concise (under 110 words), practical, encouraging, and in plain language. Use short paragraphs or '-' bullet points where useful. Do not use markdown headers.";
+  try{
+    const reply=await callGemini(text,sys);
+    typingDiv.remove();
+    addChatMessage("bot",reply);
+    STATE.chatHistory.push({role:"model",text:reply});
+  }catch(err){
+    typingDiv.remove();
+    addChatMessage("bot","Sorry, I couldn't reach the AI service ("+err.message+"). Please check the Gemini API key and try again.");
+  }
+}
+$("#chatSend").addEventListener("click",()=>{ const v=$("#chatInput").value; $("#chatInput").value=""; sendChatMessage(v); });
+$("#chatInput").addEventListener("keydown",e=>{ if(e.key==="Enter"){ const v=$("#chatInput").value; $("#chatInput").value=""; sendChatMessage(v); } });
+
+/* voice input — Web Speech API (graceful no-op if unsupported) */
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+const micBtn=$("#micBtn");
+if(SpeechRecognition){
+  const recog=new SpeechRecognition();
+  recog.lang="en-US"; recog.interimResults=false; recog.maxAlternatives=1;
+  let listening=false;
+  micBtn.addEventListener("click",()=>{
+    if(listening){ recog.stop(); return; }
+    try{ recog.start(); listening=true; micBtn.classList.add("listening"); }catch(e){}
+  });
+  recog.addEventListener("result",e=>{ const t=e.results[0][0].transcript; $("#chatInput").value=t; });
+  recog.addEventListener("end",()=>{ listening=false; micBtn.classList.remove("listening"); });
+  recog.addEventListener("error",()=>{ listening=false; micBtn.classList.remove("listening"); showToast("Voice input couldn't start — check microphone permissions."); });
+}else{
+  micBtn.style.display="none";
+}
+
+/* =====================================================================
+   CARBON FOOTPRINT CALCULATOR
+   ===================================================================== */
+const electricityInput=$("#electricity"), electricityVal=$("#electricityVal");
+electricityInput.addEventListener("input",()=>electricityVal.textContent=electricityInput.value);
+const wasteInput=$("#waste"), wasteVal=$("#wasteVal");
+wasteInput.addEventListener("input",()=>wasteVal.textContent=wasteInput.value);
+
+let breakdownChartInstance=null, compareChartInstance=null;
+const WORLD_AVG_TONS=4.7, INDIA_AVG_TONS=1.9;
+const FLIGHT_SHORT_TONS=0.3, FLIGHT_LONG_TONS=1.5;
+const GRID_KG_PER_KWH=0.45, WASTE_KG_PER_KG=0.5;
+
+$("#calcForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const factor=parseFloat($("#transportMode").value);
+  const km=parseFloat($("#transportKm").value)||0;
+  const flightsShort=parseFloat($("#flightsShort").value)||0;
+  const flightsLong=parseFloat($("#flightsLong").value)||0;
+  const kwh=parseFloat(electricityInput.value)||0;
+  const dietFactor=parseFloat($("#diet").value);
+  const wasteKg=parseFloat(wasteInput.value)||0;
+
+  const transportMonthKg = factor*km*4.345;
+  const flightsMonthKg = ((flightsShort*FLIGHT_SHORT_TONS)+(flightsLong*FLIGHT_LONG_TONS))*1000/12;
+  const electricityMonthKg = kwh*GRID_KG_PER_KWH;
+  const dietMonthKg = dietFactor*30;
+  const wasteMonthKg = wasteKg*WASTE_KG_PER_KG*4.345;
+
+  const totalMonthKg = transportMonthKg+flightsMonthKg+electricityMonthKg+dietMonthKg+wasteMonthKg;
+  const totalYearTons = totalMonthKg*12/1000;
+
+  STATE.footprint={
+    transport:transportMonthKg, flights:flightsMonthKg, electricity:electricityMonthKg, diet:dietMonthKg, waste:wasteMonthKg,
+    totalMonthKg, totalYearTons
+  };
+
+  $("#totalYearTons").textContent=totalYearTons.toFixed(1);
+  $("#totalMonthKg").textContent=Math.round(totalMonthKg)+" kg / month";
+  const diffPct=Math.round(((totalYearTons-WORLD_AVG_TONS)/WORLD_AVG_TONS)*100);
+  $("#vsWorld").textContent=(diffPct>=0?"+":"")+diffPct+"% vs world avg.";
+  $("#vsWorld").style.color=diffPct>0?"#D43D3D":"#2E9E5B";
+
+  renderBreakdownChart(STATE.footprint);
+  renderCompareChart(totalYearTons);
+  updateClimateScore();
+  showToast("Footprint calculated! Scroll down for your AI action plan.");
+});
+
+function renderBreakdownChart(fp){
+  const ctx=$("#breakdownChart").getContext("2d");
+  if(breakdownChartInstance) breakdownChartInstance.destroy();
+  breakdownChartInstance=new Chart(ctx,{
+    type:"doughnut",
+    data:{ labels:["Transport","Flights","Electricity","Diet","Waste"],
+      datasets:[{ data:[fp.transport,fp.flights,fp.electricity,fp.diet,fp.waste],
+        backgroundColor:["#00C853","#00BCD4","#4CAF50","#FBC02D","#8E3FA8"], borderWidth:0 }] },
+    options:{ plugins:{ legend:{ position:"bottom", labels:{ boxWidth:10, font:{size:10} } } }, cutout:"62%", responsive:true, maintainAspectRatio:false }
+  });
+}
+function renderCompareChart(yourTons){
+  const ctx=$("#compareChart").getContext("2d");
+  if(compareChartInstance) compareChartInstance.destroy();
+  compareChartInstance=new Chart(ctx,{
+    type:"bar",
+    data:{ labels:["You","World Avg","India Avg"],
+      datasets:[{ data:[yourTons,WORLD_AVG_TONS,INDIA_AVG_TONS], backgroundColor:["#00C853","#00BCD4","#4CAF50"], borderRadius:8 }] },
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:"rgba(120,120,120,.1)" } }, x:{ grid:{ display:false } } }, responsive:true, maintainAspectRatio:false }
+  });
+}
+
+$("#aiTipsBtn").addEventListener("click",async ()=>{
+  if(!STATE.footprint){ showToast("Calculate your footprint first."); return; }
+  const list=$("#tipsList");
+  list.innerHTML=`<li style="justify-content:center"><div class="typing-dots"><span></span><span></span><span></span></div></li>`;
+  const fp=STATE.footprint;
+  const prompt=`A person's estimated monthly carbon footprint breakdown (kg CO2e): transport ${fp.transport.toFixed(0)}, flights ${fp.flights.toFixed(0)}, electricity ${fp.electricity.toFixed(0)}, diet ${fp.diet.toFixed(0)}, waste ${fp.waste.toFixed(0)}. Total ${fp.totalMonthKg.toFixed(0)} kg/month (${fp.totalYearTons.toFixed(1)} t/year).
+Respond ONLY with valid minified JSON, no markdown fences, in this exact shape: {"tips":["tip 1","tip 2","tip 3","tip 4","tip 5"]}. Each tip must be one short, specific, actionable sentence, ranked by likely impact, targeting their biggest contributing categories first.`;
+  try{
+    const text=await callGemini(prompt);
+    const parsed=parseJSONFromModel(text);
+    const tips=parsed.tips||[];
+    list.innerHTML=tips.map(t=>`<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span>${escapeHTML(t)}</span></li>`).join("") || `<li style="color:var(--ink-soft)">No tips returned — try again.</li>`;
+  }catch(err){
+    list.innerHTML=`<li style="color:var(--ink-soft)">AI recommendations unavailable right now (${escapeHTML(err.message)}). Check the Gemini API key and retry.</li>`;
+  }
+});
+
+$("#downloadReportBtn").addEventListener("click",()=>{
+  if(!STATE.footprint){ showToast("Calculate your footprint first."); return; }
+  try{
+    const { jsPDF }=window.jspdf;
+    const doc=new jsPDF();
+    const fp=STATE.footprint;
+    doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(6,80,47);
+    doc.text("AirVision — Climate Report",14,20);
+    doc.setFontSize(10); doc.setTextColor(90,90,90);
+    doc.text("Generated "+new Date().toLocaleString(),14,27);
+    doc.setDrawColor(0,200,83); doc.line(14,31,196,31);
+
+    doc.setTextColor(20,20,20); doc.setFontSize(13); doc.setFont("helvetica","bold");
+    doc.text("Carbon Footprint Summary",14,42);
+    doc.setFont("helvetica","normal"); doc.setFontSize(11);
+    doc.text(`Total: ${fp.totalYearTons.toFixed(1)} t CO2e / year  (${Math.round(fp.totalMonthKg)} kg / month)`,14,50);
+    doc.text(`Transport: ${fp.transport.toFixed(0)} kg/mo   Flights: ${fp.flights.toFixed(0)} kg/mo`,14,58);
+    doc.text(`Electricity: ${fp.electricity.toFixed(0)} kg/mo   Diet: ${fp.diet.toFixed(0)} kg/mo   Waste: ${fp.waste.toFixed(0)} kg/mo`,14,66);
+    doc.text(`World average: ${WORLD_AVG_TONS} t/year   India average: ${INDIA_AVG_TONS} t/year`,14,74);
+
+    if(STATE.lastAQI){
+      doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.text("Latest Air Quality Reading",14,90);
+      doc.setFont("helvetica","normal"); doc.setFontSize(11);
+      doc.text(`${STATE.lastAQI.city}: US AQI ${STATE.lastAQI.aqi} (${STATE.lastAQI.category})`,14,98);
+    }
+
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.text("Climate Score",14,114);
+    doc.setFont("helvetica","normal"); doc.setFontSize(11);
+    doc.text(`${$("#scoreNum").textContent} / 100 — ${$("#badgeTier").textContent}`,14,122);
+
+    doc.setFontSize(9); doc.setTextColor(120,120,120);
+    doc.text("Estimates use standard global emission factors and are for educational awareness, not formal carbon accounting.",14,280);
+    doc.text("AirVision · Built for UN SDG 13 · Made by Shaila Mandkulkar",14,286);
+
+    doc.save("AirVision_Climate_Report.pdf");
+    showToast("Report downloaded!");
+  }catch(err){
+    showToast("Couldn't generate the PDF in this browser.");
+  }
+});
+
+/* =====================================================================
+   CLIMATE SCORE + CHALLENGES + LEADERBOARD
+   ===================================================================== */
+function updateClimateScore(){
+  let score=70;
+  if(STATE.footprint){
+    const ratio=STATE.footprint.totalYearTons/WORLD_AVG_TONS;
+    score = Math.round(Math.max(10,Math.min(95, 95-(ratio-1)*45)));
+  }
+  score=Math.min(100,score+Math.round(STATE.points/2));
+  renderScore(score);
+}
+function renderScore(score){
+  $("#scoreNum").textContent=score;
+  const circumference=2*Math.PI*84;
+  $("#scoreRing").setAttribute("stroke-dasharray",`${(score/100)*circumference} ${circumference}`);
+  let tier="Seedling 🌱";
+  ["badgeSeed","badgeSapling","badgeTree","badgeForest"].forEach(id=>$("#"+id).classList.remove("unlocked"));
+  if(score>=85){ tier="Forest Guardian 🌳"; ["badgeSeed","badgeSapling","badgeTree","badgeForest"].forEach(id=>$("#"+id).classList.add("unlocked")); }
+  else if(score>=65){ tier="Tree 🌲"; ["badgeSeed","badgeSapling","badgeTree"].forEach(id=>$("#"+id).classList.add("unlocked")); }
+  else if(score>=40){ tier="Sapling 🌱"; ["badgeSeed","badgeSapling"].forEach(id=>$("#"+id).classList.add("unlocked")); }
+  else{ tier="Seedling 🌱"; $("#badgeSeed").classList.add("unlocked"); }
+  $("#badgeTier").textContent=tier;
+}
+$$(".join-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const row=btn.closest(".challenge-row");
+    const pts=parseInt(row.dataset.points);
+    if(STATE.joinedChallenges.has(row)){ return; }
+    STATE.joinedChallenges.add(row);
+    STATE.points+=pts;
+    btn.textContent="Joined ✓"; btn.disabled=true; btn.style.opacity=".7";
+    showToast(`Challenge joined! +${pts} points added to your Climate Score.`);
+    const you=STATE.leaderboard.find(p=>p.name==="You");
+    if(you) you.points+=pts; else STATE.leaderboard.push({name:"You",points:pts});
+    renderLeaderboard();
+    updateClimateScore();
+  });
+});
+function renderLeaderboard(){
+  const sorted=[...STATE.leaderboard].sort((a,b)=>b.points-a.points);
+  $("#leaderboardList").innerHTML=sorted.map((p,i)=>`
+    <div class="lb-row ${p.name==='You'?'you':''}"><span><span class="lb-rank">#${i+1}</span>${escapeHTML(p.name)}</span><span>${p.points} pts</span></div>
+  `).join("");
+}
+
+/* =====================================================================
+   EDUCATION HUB
+   ===================================================================== */
+const EDU_TOPICS=[
+  { icon:`<path d="M3 8h11a3 3 0 1 0-3-5"/><path d="M3 16h15a3 3 0 1 1-3 5"/><path d="M3 12h9"/>`,
+    title:"Air Pollution", body:"Air pollution is a mix of solid particles and gases — like PM2.5, PM10, nitrogen dioxide and ozone — released mainly by vehicles, industry, and burning fuels. Tiny PM2.5 particles can enter the bloodstream through the lungs, contributing to respiratory and cardiovascular disease. The WHO estimates the vast majority of the world's population breathes air that exceeds its safety guidelines." },
+  { icon:`<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><path d="M12 13a3 3 0 1 0 0-6"/>`,
+    title:"Carbon Footprint", body:"Your carbon footprint is the total greenhouse gas emissions caused by your activities — travel, electricity use, food choices, and waste — measured in CO₂ equivalent (CO₂e). Tracking it helps identify the highest-impact changes, which are usually transport, flights, and energy use rather than small daily habits." },
+  { icon:`<path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10l7 4"/>`,
+    title:"Climate Change", body:"Climate change refers to long-term shifts in temperature and weather patterns, primarily driven by burning fossil fuels, which release greenhouse gases that trap heat in the atmosphere. Effects already include more intense heatwaves, shifting rainfall patterns, and rising sea levels." },
+  { icon:`<path d="M13 2 3 14h7l-1 8 11-12h-7l1-8Z"/>`,
+    title:"Renewable Energy", body:"Renewable energy — solar, wind, hydro, and geothermal — generates power without burning fossil fuels, producing little to no greenhouse gas emissions during operation. Falling costs have made solar and wind among the cheapest sources of new electricity in most of the world." },
+  { icon:`<path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/>`,
+    title:"SDG 13: Climate Action", body:"UN Sustainable Development Goal 13 calls for urgent action to combat climate change and its impacts — through resilience-building, better policy integration, and improved education and awareness, exactly the awareness gap AirVision was built to help close." },
+];
+const eduGrid=$("#eduGrid");
+EDU_TOPICS.forEach((t,i)=>{
+  const card=document.createElement("div");
+  card.className="edu-card glass reveal"; card.style.setProperty("--i",i);
+  card.innerHTML=`
+    <div class="edu-head">
+      <div class="edu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${t.icon}</svg></div>
+      <h4>${t.title}</h4>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="edu-body"><div class="edu-body-inner">${t.body}</div></div>
+  `;
+  card.addEventListener("click",()=>{
+    const body=card.querySelector(".edu-body");
+    const isOpen=card.classList.contains("open");
+    card.classList.toggle("open");
+    body.style.maxHeight = isOpen ? "0" : body.scrollHeight+"px";
+  });
+  eduGrid.appendChild(card);
+});
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+$("#yearNow").textContent=new Date().getFullYear();
+$("#githubLink").addEventListener("click",e=>{ e.preventDefault(); showToast("Add your GitHub repo link here after you push this project."); });
+renderLeaderboard();
+renderScore(62);
+initReveal();
+new MutationObserver(initReveal).observe(document.body,{childList:true,subtree:true});
+useMyLocation(); // attempt to auto-load AQI for the visitor on page load
+</script>
+</body>
+</html>
